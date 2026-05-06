@@ -1,41 +1,44 @@
-import 'dart:html';
+import 'package:audioplayers/audioplayers.dart';
 
 class SoundService {
-  static AudioElement? _backgroundMusic;
+  
+  static final AudioPlayer _bgPlayer = AudioPlayer();
   static bool _isMuted = false;
+
   static bool get isMuted => _isMuted;
 
-  // Запуск фоновой музыки
-  static void playBackground() {
-    _backgroundMusic = AudioElement('assets/assets/sounds/background.mp3');
-    _backgroundMusic!.loop = true;
-    _backgroundMusic!.volume = 0.4;
-    if (!_isMuted) {
-      _backgroundMusic!.play();
-    }
-  }
-
-  // Внутренний метод для одноразовых звуков
-  static void _playSound(String path, {double volume = 1.0}) {
+  
+  static Future<void> playBackground() async {
     if (_isMuted) return;
-    final audio = AudioElement('assets/assets/sounds/$path');
-    audio.volume = volume;
-    audio.play();
+    
+    await _bgPlayer.setSource(AssetSource('sounds/background.mp3'));
+    await _bgPlayer.setVolume(0.4);
+    await _bgPlayer.setReleaseMode(ReleaseMode.loop);
+    await _bgPlayer.resume();
   }
 
-  // Публичные методы для событий
-  static void playWin() => _playSound('win.mp3', volume: 0.8);
-  static void playJackpot() => _playSound('jackpot.mp3', volume: 1.0);
-  static void playLose() => _playSound('lose.mp3', volume: 0.7);
-  static void playClick() => _playSound('click.mp3', volume: 0.5);
+  static Future<void> _playEffect(String path, {double volume = 1.0}) async {
+    if (_isMuted) return;
+    final player = AudioPlayer();
+    await player.setSource(AssetSource('sounds/$path'));
+    await player.setVolume(volume);
+    await player.resume();
+    // Освобождаем память после завершения звука
+    player.onPlayerComplete.listen((_) => player.dispose());
+  }
 
-  // Переключатель звука
-  static void toggleMute() {
+  static Future<void> playWin()     => _playEffect('win.mp3');
+  static Future<void> playJackpot() => _playEffect('jackpot.mp3');
+  static Future<void> playLose()    => _playEffect('lose.mp3');
+  static Future<void> playClick()   => _playEffect('click.mp3');
+
+ 
+  static Future<void> toggleMute() async {
     _isMuted = !_isMuted;
     if (_isMuted) {
-      _backgroundMusic?.pause();
+      await _bgPlayer.pause();
     } else {
-      _backgroundMusic?.play();
+      await _bgPlayer.resume();
     }
   }
 }
